@@ -1,0 +1,37 @@
+group 'com.zarz.mornye.discord'
+version '1.0'
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+def discordSdkEnabled = System.getenv('MORNYE_DISCORD_SDK') != '0'
+// Reuse the unchanged ARM64 bridge from the supplied Mornye 5.2.6 APK.
+def discordPrebuilt = discordSdkEnabled && file('../sdk/android/jni/arm64-v8a/libmornye_discord.so').exists()
+
+android {
+    namespace 'com.zarz.mornye.discord'
+    compileSdk 37
+    ndkVersion '30.0.16248370'
+    defaultConfig {
+        minSdk 24
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_STL=c++_static',
+                    "-DMORNYE_DISCORD_SDK=${discordSdkEnabled ? 'ON' : 'OFF'}"
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_25
+        targetCompatibility JavaVersion.VERSION_25
+    }
+    kotlinOptions { jvmTarget = '25' }
+    if (discordSdkEnabled) sourceSets.main.assets.srcDir('../sdk/notices')
+    if (discordPrebuilt) {
+        sourceSets.main.jniLibs.srcDir('../sdk/android/jni')
+    } else {
+        externalNativeBuild {
+            cmake { path 'CMakeLists.txt'; version '4.1.2' }
+        }
+    }
+}
